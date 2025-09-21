@@ -70,11 +70,47 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .hidden {
+            display: none;
+        }
+        .message-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #3b4252;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            z-index: 100;
+        }
+        .message-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col items-center justify-center p-4 min-h-screen">
 
-    <div class="container md:flex-row">
+    <!-- Écran d'authentification -->
+    <div id="auth-screen" class="container">
+        <h1 class="text-3xl font-bold text-center text-teal-300 mb-4">Bienvenue sur Snake Online</h1>
+        <p class="text-center text-gray-400 mb-6">Veuillez vous connecter pour jouer.</p>
+        <div class="bg-gray-700 p-6 rounded-lg flex flex-col gap-4">
+            <input id="email-input" type="email" placeholder="Entrez votre e-mail" class="w-full p-3 rounded-md bg-gray-800 text-white placeholder-gray-500 border border-transparent focus:border-blue-500">
+            <input id="password-input" type="password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-800 text-white placeholder-gray-500 border border-transparent focus:border-blue-500">
+            <button id="login-button" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg mt-2 button">Se connecter</button>
+        </div>
+    </div>
+
+    <!-- Écran de jeu et Leaderboard (initialement cachés) -->
+    <div id="game-screen" class="container md:flex-row hidden">
         <!-- Section Jeu et Contrôles -->
         <div class="flex-1 flex flex-col gap-4">
             <h1 class="text-3xl font-bold text-center text-teal-300">Jeu Snake</h1>
@@ -91,11 +127,9 @@
                     <span id="high-score-display" class="text-2xl font-bold text-purple-300">0</span>
                 </div>
             </div>
-            <div id="auth-ui" class="bg-gray-700 p-4 rounded-lg flex flex-col gap-2">
-                <span id="user-status" class="text-center text-sm text-gray-300">Utilisateur non connecté.</span>
-                <input id="email-input" type="email" placeholder="Entrez votre e-mail" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500">
-                <input id="password-input" type="password" placeholder="Mot de passe" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500">
-                <button id="login-button" class="w-full bg-blue-500 text-white font-bold py-2 rounded-lg mt-2 button">Se connecter</button>
+            <div id="auth-ui" class="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
+                <span id="user-status" class="text-sm text-gray-300"></span>
+                <button id="logout-button" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg button">Déconnexion</button>
             </div>
             <div id="controls-ui" class="flex justify-around mt-4 md:hidden">
                 <button onclick="changeDirection('Up')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▲</button>
@@ -126,11 +160,19 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modale de message (cachée par défaut) -->
+    <div id="message-modal-backdrop" class="message-backdrop hidden"></div>
+    <div id="message-modal" class="message-modal hidden">
+        <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+        <p id="modal-message" class="mb-4"></p>
+        <button id="modal-close-button" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg button">OK</button>
+    </div>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         setLogLevel('debug');
@@ -163,62 +205,90 @@
         const scoreDisplay = document.getElementById('score-display');
         const highScoreDisplay = document.getElementById('high-score-display');
         const gameContainer = document.getElementById('game-container');
+        const authScreen = document.getElementById('auth-screen');
+        const gameScreen = document.getElementById('game-screen');
         const userStatus = document.getElementById('user-status');
         const emailInput = document.getElementById('email-input');
         const passwordInput = document.getElementById('password-input');
         const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const modalBackdrop = document.getElementById('message-modal-backdrop');
+        const modal = document.getElementById('message-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseButton = document.getElementById('modal-close-button');
+
+        // Fonction pour afficher la modale de message
+        function showMessage(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalBackdrop.classList.remove('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        // Fermer la modale
+        modalCloseButton.addEventListener('click', () => {
+            modalBackdrop.classList.add('hidden');
+            modal.classList.add('hidden');
+        });
 
         // Authentification Firebase
         onAuthStateChanged(auth, async (user) => {
+            isAuthReady = true;
             if (user) {
                 userId = user.uid;
                 userEmail = user.email || 'Anonyme';
                 userStatus.textContent = `Connecté comme : ${userEmail}`;
-                loginButton.textContent = 'Déconnexion';
-                emailInput.value = user.email || '';
+                authScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                resetGame();
+                fetchHighScore();
+                attachLeaderboardListener();
             } else {
                 userId = crypto.randomUUID();
                 userEmail = 'Anonyme';
                 userStatus.textContent = 'Utilisateur non connecté.';
-                loginButton.textContent = 'Se connecter';
+                authScreen.classList.remove('hidden');
+                gameScreen.classList.add('hidden');
+                clearInterval(gameLoopId);
             }
-            isAuthReady = true;
-            fetchHighScore();
-            attachLeaderboardListener();
         });
 
         // Fonction de connexion/déconnexion
         loginButton.addEventListener('click', async () => {
-            if (auth.currentUser && auth.currentUser.isAnonymous) {
-                const email = emailInput.value;
-                const password = passwordInput.value;
-                if (!email || !password) {
-                    alert('Veuillez entrer un e-mail et un mot de passe valides.');
-                    return;
-                }
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    alert('Compte créé et connecté !');
-                } catch (error) {
-                    if (error.code === 'auth/email-already-in-use') {
-                        try {
-                            await signInWithEmailAndPassword(auth, email, password);
-                            alert('Connecté avec succès !');
-                        } catch (error) {
-                            console.error('Erreur de connexion:', error);
-                            alert('Erreur de connexion. Vérifiez vos informations.');
-                        }
-                    } else {
-                        console.error('Erreur de création de compte:', error);
-                        alert('Erreur lors de la création du compte. ' + error.message);
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                showMessage('Erreur', 'Veuillez entrer un e-mail et un mot de passe valides.');
+                return;
+            }
+            loginButton.textContent = 'Connexion en cours...';
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage('Succès', 'Connecté avec succès !');
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    // Si l'utilisateur n'existe pas ou le mot de passe est incorrect, tente de créer un compte
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        showMessage('Succès', 'Compte créé et connecté !');
+                    } catch (createError) {
+                        showMessage('Erreur', 'Impossible de créer un compte. ' + createError.message);
                     }
+                } else {
+                    showMessage('Erreur', 'Erreur de connexion. ' + error.message);
                 }
-            } else if (auth.currentUser) {
-                await auth.signOut();
-                alert('Déconnecté.');
-                emailInput.value = '';
-                passwordInput.value = '';
-                await signInAnonymously(auth);
+            } finally {
+                loginButton.textContent = 'Se connecter';
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showMessage('Déconnexion', 'Vous avez été déconnecté.');
+            } catch (error) {
+                showMessage('Erreur', 'Erreur de déconnexion. ' + error.message);
             }
         });
 
@@ -354,7 +424,7 @@
         }
 
         async function saveScore(newScore) {
-            if (!isAuthReady) return;
+            if (!isAuthReady || userEmail === 'Anonyme') return; // Ne pas sauvegarder si l'utilisateur est anonyme
             // Mise à jour du record personnel
             const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
             if (newScore > highScore) {
@@ -394,17 +464,7 @@
         window.onload = function () {
             canvas.width = boardSize * cellSize;
             canvas.height = boardSize * cellSize;
-            // Assure l'authentification initiale
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-            if (initialAuthToken) {
-                signInWithCustomToken(auth, initialAuthToken).catch(err => {
-                    console.error('Custom auth token sign-in failed:', err);
-                    signInAnonymously(auth);
-                });
-            } else {
-                signInAnonymously(auth);
-            }
-            resetGame();
+            // On attend le login pour lancer le jeu
         };
     </script>
 </body>
