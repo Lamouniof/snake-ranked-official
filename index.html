@@ -3,21 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeu Snake</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Snake Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            background-color: #2d3748;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 900px;
+            width: 100%;
+        }
+        #game-board {
+            border: 2px solid #a0aec0;
+            border-radius: 0.5rem;
+            background-color: #4a5568;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+                gap: 2rem;
+            }
+        }
+        .snake-segment {
+            background-color: #48bb78;
+        }
+        .food {
+            background-color: #fc8181;
+            border-radius: 50%;
+        }
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        .button {
+            transition: all 0.2s ease-in-out;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gray-900 flex flex-col items-center justify-center p-4 min-h-screen">
 
-    <h1>Jeu Snake</h1>
-    <div class="score-container">
-        Score : <span id="score">0</span>
+    <div class="container md:flex-row">
+        <!-- Section Jeu et Contrôles -->
+        <div class="flex-1 flex flex-col gap-4">
+            <h1 class="text-3xl font-bold text-center text-teal-300">Jeu Snake</h1>
+            <div id="game-container" class="relative w-full aspect-square">
+                <canvas id="game-board" class="w-full h-full rounded-lg"></canvas>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-gray-700">
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-semibold text-gray-400">Score</span>
+                    <span id="score-display" class="text-2xl font-bold text-yellow-300">0</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-semibold text-gray-400">Record</span>
+                    <span id="high-score-display" class="text-2xl font-bold text-purple-300">0</span>
+                </div>
+            </div>
+            <div id="auth-ui" class="bg-gray-700 p-4 rounded-lg flex flex-col gap-2">
+                <span id="user-status" class="text-center text-sm text-gray-300">Utilisateur non connecté.</span>
+                <input id="email-input" type="email" placeholder="Entrez votre e-mail" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500">
+                <input id="password-input" type="password" placeholder="Mot de passe" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500">
+                <button id="login-button" class="w-full bg-blue-500 text-white font-bold py-2 rounded-lg mt-2 button">Se connecter</button>
+            </div>
+            <div id="controls-ui" class="flex justify-around mt-4 md:hidden">
+                <button onclick="changeDirection('Up')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▲</button>
+                <div class="flex flex-col items-center">
+                    <button onclick="changeDirection('Left')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">◀</button>
+                    <button onclick="changeDirection('Down')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white mt-2 button">▼</button>
+                </div>
+                <button onclick="changeDirection('Right')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▶</button>
+            </div>
+        </div>
+
+        <!-- Section Leaderboard -->
+        <div class="flex-1 bg-gray-700 p-4 rounded-lg flex flex-col gap-4">
+            <h2 class="text-2xl font-bold text-center text-yellow-300">Classement</h2>
+            <div id="leaderboard-container" class="flex-grow overflow-y-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-sm text-gray-400 uppercase tracking-wider border-b border-gray-600">
+                            <th class="py-2">Rank</th>
+                            <th class="py-2">Joueur</th>
+                            <th class="py-2 text-right">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-list">
+                        <!-- Les scores seront insérés ici par le JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div class="controls">
-        <p>Utilisez les flèches du clavier pour jouer.</p>
-    </div>
 
-    <script src="script.js"></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        setLogLevel('debug');
 
+        // Initialisation de Firebase
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variables globales
+        let userId = null;
+        let isAuthReady = false;
+        let userEmail = 'Anonyme';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const scoresCollectionRef = collection(db, `artifacts/${appId}/public/data/scores`);
+
+        // État du jeu
+        const boardSize = 20;
+        const cellSize = 20;
+        let snake = [{ x: 10, y: 10 }];
+        let food = {};
+        let direction = 'Right';
+        let score = 0;
+        let highScore = 0;
+        let gameLoopId = null;
+        let isGameOver = false;
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const gameContainer = document.getElementById('game-container');
+        const userStatus = document.getElementById('user-status');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const loginButton = document.getElementById('login-button');
+
+        // Authentification Firebase
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userEmail = user.email || 'Anonyme';
+                userStatus.textContent = `Connecté comme : ${userEmail}`;
+                loginButton.textContent = 'Déconnexion';
+                emailInput.value = user.email || '';
+            } else {
+                userId = crypto.randomUUID();
+                userEmail = 'Anonyme';
+                userStatus.textContent = 'Utilisateur non connecté.';
+                loginButton.textContent = 'Se connecter';
+            }
+            isAuthReady = true;
+            fetchHighScore();
+            attachLeaderboardListener();
+        });
+
+        // Fonction de connexion/déconnexion
+        loginButton.addEventListener('click', async () => {
+            if (auth.currentUser && auth.currentUser.isAnonymous) {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                if (!email || !password) {
+                    alert('Veuillez entrer un e-mail et un mot de passe valides.');
+                    return;
+                }
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    alert('Compte créé et connecté !');
+                } catch (error) {
+                    if (error.code === 'auth/email-already-in-use') {
+                        try {
+                            await signInWithEmailAndPassword(auth, email, password);
+                            alert('Connecté avec succès !');
+                        } catch (error) {
+                            console.error('Erreur de connexion:', error);
+                            alert('Erreur de connexion. Vérifiez vos informations.');
+                        }
+                    } else {
+                        console.error('Erreur de création de compte:', error);
+                        alert('Erreur lors de la création du compte. ' + error.message);
+                    }
+                }
+            } else if (auth.currentUser) {
+                await auth.signOut();
+                alert('Déconnecté.');
+                emailInput.value = '';
+                passwordInput.value = '';
+                await signInAnonymously(auth);
+            }
+        });
+
+        // Fonctions du jeu
+        function generateFood() {
+            food = {
+                x: Math.floor(Math.random() * boardSize),
+                y: Math.floor(Math.random() * boardSize)
+            };
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#4a5568';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            snake.forEach(segment => {
+                ctx.fillStyle = '#48bb78';
+                ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+                ctx.strokeStyle = '#2f855a';
+                ctx.strokeRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+            });
+
+            ctx.fillStyle = '#fc8181';
+            ctx.beginPath();
+            ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            const head = { x: snake[0].x, y: snake[0].y };
+            switch (direction) {
+                case 'Up':
+                    head.y--;
+                    break;
+                case 'Down':
+                    head.y++;
+                    break;
+                case 'Left':
+                    head.x--;
+                    break;
+                case 'Right':
+                    head.x++;
+                    break;
+            }
+
+            if (checkCollision(head)) {
+                gameOver();
+                return;
+            }
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreDisplay.textContent = score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+
+            draw();
+        }
+
+        function checkCollision(head) {
+            return head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || snake.some(segment => segment.x === head.x && segment.y === head.y);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameLoopId);
+            const overlay = document.createElement('div');
+            overlay.className = 'game-over-overlay';
+            overlay.innerHTML = `
+                <h3 class="text-4xl font-bold text-red-500 mb-4">Game Over!</h3>
+                <p class="text-lg text-white mb-2">Votre score: ${score}</p>
+                <button id="restart-button" class="bg-teal-500 text-white font-bold py-2 px-6 rounded-lg button">Rejouer</button>
+            `;
+            gameContainer.appendChild(overlay);
+
+            document.getElementById('restart-button').addEventListener('click', () => {
+                gameContainer.removeChild(overlay);
+                resetGame();
+            });
+
+            saveScore(score);
+        }
+
+        function resetGame() {
+            snake = [{ x: 10, y: 10 }];
+            direction = 'Right';
+            score = 0;
+            scoreDisplay.textContent = score;
+            isGameOver = false;
+            generateFood();
+            gameLoopId = setInterval(update, 100);
+        }
+
+        function changeDirection(newDirection) {
+            const oppositeDirections = { 'Up': 'Down', 'Down': 'Up', 'Left': 'Right', 'Right': 'Left' };
+            if (oppositeDirections[newDirection] !== direction) {
+                direction = newDirection;
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            const key = e.key;
+            const newDirection = {
+                'ArrowUp': 'Up',
+                'ArrowDown': 'Down',
+                'ArrowLeft': 'Left',
+                'ArrowRight': 'Right'
+            }[key];
+            if (newDirection) {
+                changeDirection(newDirection);
+            }
+        });
+
+        // Firestore Leaderboard
+        async function fetchHighScore() {
+            if (!isAuthReady) return;
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+            const docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) {
+                highScore = docSnap.data().highScore || 0;
+                highScoreDisplay.textContent = highScore;
+            } else {
+                highScore = 0;
+                highScoreDisplay.textContent = highScore;
+            }
+        }
+
+        async function saveScore(newScore) {
+            if (!isAuthReady) return;
+            // Mise à jour du record personnel
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+            if (newScore > highScore) {
+                 await setDoc(userDocRef, { highScore: newScore, userId: userId, email: userEmail }, { merge: true });
+            }
+
+            // Ajout du score au classement public
+            await setDoc(doc(db, `artifacts/${appId}/public/data/scores`, userId), {
+                score: newScore,
+                playerName: userEmail,
+                timestamp: Date.now()
+            });
+        }
+
+        function attachLeaderboardListener() {
+            if (!isAuthReady) return;
+            const q = query(scoresCollectionRef, orderBy('score', 'desc'), limit(10));
+            onSnapshot(q, (querySnapshot) => {
+                const leaderboardList = document.getElementById('leaderboard-list');
+                leaderboardList.innerHTML = '';
+                let rank = 1;
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const row = document.createElement('tr');
+                    row.className = 'text-gray-200 hover:bg-gray-600 transition-colors duration-200';
+                    row.innerHTML = `
+                        <td class="py-2">${rank++}</td>
+                        <td class="py-2">${data.playerName}</td>
+                        <td class="py-2 text-right font-semibold">${data.score}</td>
+                    `;
+                    leaderboardList.appendChild(row);
+                });
+            });
+        }
+
+        // Démarrage initial
+        window.onload = function () {
+            canvas.width = boardSize * cellSize;
+            canvas.height = boardSize * cellSize;
+            // Assure l'authentification initiale
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            if (initialAuthToken) {
+                signInWithCustomToken(auth, initialAuthToken).catch(err => {
+                    console.error('Custom auth token sign-in failed:', err);
+                    signInAnonymously(auth);
+                });
+            } else {
+                signInAnonymously(auth);
+            }
+            resetGame();
+        };
+    </script>
 </body>
 </html>
