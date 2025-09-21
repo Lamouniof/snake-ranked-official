@@ -73,7 +73,7 @@
         .hidden {
             display: none;
         }
-        .message-modal {
+        .message-modal, .settings-modal {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -85,7 +85,7 @@
             text-align: center;
             z-index: 100;
         }
-        .message-backdrop {
+        .message-backdrop, .settings-backdrop {
             position: fixed;
             top: 0;
             left: 0;
@@ -129,7 +129,10 @@
             </div>
             <div id="auth-ui" class="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
                 <span id="user-status" class="text-sm text-gray-300"></span>
-                <button id="logout-button" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg button">Déconnexion</button>
+                <div class="flex gap-2">
+                    <button id="settings-button" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg button">Paramètres</button>
+                    <button id="logout-button" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg button">Déconnexion</button>
+                </div>
             </div>
             <div id="controls-ui" class="flex justify-around mt-4 md:hidden">
                 <button onclick="changeDirection('Up')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▲</button>
@@ -169,11 +172,40 @@
         <button id="modal-close-button" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg button">OK</button>
     </div>
 
+    <!-- Modale des paramètres (cachée par défaut) -->
+    <div id="settings-modal-backdrop" class="settings-backdrop hidden"></div>
+    <div id="settings-modal" class="settings-modal hidden">
+        <h3 class="text-xl font-bold mb-4">Paramètres de jeu</h3>
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="player-name-input" class="text-sm font-semibold text-gray-300">Nom du joueur</label>
+                <input id="player-name-input" type="text" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500 mt-1">
+            </div>
+            <div>
+                <label for="difficulty-select" class="text-sm font-semibold text-gray-300">Difficulté</label>
+                <select id="difficulty-select" class="w-full p-2 rounded-md bg-gray-800 text-white mt-1">
+                    <option value="150">Facile</option>
+                    <option value="100" selected>Normal</option>
+                    <option value="50">Difficile</option>
+                </select>
+            </div>
+            <div>
+                <label for="grid-size-select" class="text-sm font-semibold text-gray-300">Taille de la grille</label>
+                <select id="grid-size-select" class="w-full p-2 rounded-md bg-gray-800 text-white mt-1">
+                    <option value="15">Petite</option>
+                    <option value="20" selected>Moyenne</option>
+                    <option value="25">Grande</option>
+                </select>
+            </div>
+            <button id="save-settings-button" class="w-full bg-blue-500 text-white font-bold py-2 rounded-lg mt-2 button">Sauvegarder</button>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         setLogLevel('debug');
 
@@ -187,12 +219,14 @@
         let userId = null;
         let isAuthReady = false;
         let userEmail = 'Anonyme';
+        let playerName = 'Anonyme';
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const scoresCollectionRef = collection(db, `artifacts/${appId}/public/data/scores`);
 
-        // État du jeu
-        const boardSize = 20;
-        const cellSize = 20;
+        // État du jeu et paramètres
+        let boardSize = 20;
+        let gameSpeed = 100;
+        let cellSize = 20;
         let snake = [{ x: 10, y: 10 }];
         let food = {};
         let direction = 'Right';
@@ -200,6 +234,8 @@
         let highScore = 0;
         let gameLoopId = null;
         let isGameOver = false;
+        
+        // Éléments du DOM
         const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score-display');
@@ -212,13 +248,20 @@
         const passwordInput = document.getElementById('password-input');
         const loginButton = document.getElementById('login-button');
         const logoutButton = document.getElementById('logout-button');
+        const settingsButton = document.getElementById('settings-button');
         const modalBackdrop = document.getElementById('message-modal-backdrop');
         const modal = document.getElementById('message-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalCloseButton = document.getElementById('modal-close-button');
+        const settingsModalBackdrop = document.getElementById('settings-modal-backdrop');
+        const settingsModal = document.getElementById('settings-modal');
+        const playerNameInput = document.getElementById('player-name-input');
+        const difficultySelect = document.getElementById('difficulty-select');
+        const gridSizeSelect = document.getElementById('grid-size-select');
+        const saveSettingsButton = document.getElementById('save-settings-button');
 
-        // Fonction pour afficher la modale de message
+        // Fonctions pour gérer les modales
         function showMessage(title, message) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
@@ -226,10 +269,51 @@
             modal.classList.remove('hidden');
         }
 
-        // Fermer la modale
+        function showSettings() {
+            settingsModalBackdrop.classList.remove('hidden');
+            settingsModal.classList.remove('hidden');
+            // Mettre à jour les champs de la modale avec les valeurs actuelles
+            playerNameInput.value = playerName;
+            difficultySelect.value = gameSpeed;
+            gridSizeSelect.value = boardSize;
+        }
+
+        function hideSettings() {
+            settingsModalBackdrop.classList.add('hidden');
+            settingsModal.classList.add('hidden');
+        }
+
         modalCloseButton.addEventListener('click', () => {
             modalBackdrop.classList.add('hidden');
             modal.classList.add('hidden');
+        });
+
+        settingsButton.addEventListener('click', showSettings);
+        settingsModalBackdrop.addEventListener('click', hideSettings);
+        saveSettingsButton.addEventListener('click', async () => {
+            const newPlayerName = playerNameInput.value || userEmail;
+            const newGameSpeed = parseInt(difficultySelect.value);
+            const newBoardSize = parseInt(gridSizeSelect.value);
+
+            // Mise à jour de l'état local
+            playerName = newPlayerName;
+            gameSpeed = newGameSpeed;
+            boardSize = newBoardSize;
+
+            // Sauvegarde des paramètres dans Firestore
+            if (userId) {
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+                await setDoc(userDocRef, {
+                    playerName: newPlayerName,
+                    gameSpeed: newGameSpeed,
+                    boardSize: newBoardSize,
+                    highScore: highScore
+                }, { merge: true });
+            }
+
+            showMessage('Succès', 'Paramètres sauvegardés ! Le jeu va redémarrer.');
+            hideSettings();
+            resetGame();
         });
 
         // Authentification Firebase
@@ -241,18 +325,39 @@
                 userStatus.textContent = `Connecté comme : ${userEmail}`;
                 authScreen.classList.add('hidden');
                 gameScreen.classList.remove('hidden');
+                await loadUserProfile();
                 resetGame();
-                fetchHighScore();
                 attachLeaderboardListener();
             } else {
-                userId = crypto.randomUUID();
+                userId = null;
                 userEmail = 'Anonyme';
-                userStatus.textContent = 'Utilisateur non connecté.';
+                userStatus.textContent = 'Déconnecté.';
                 authScreen.classList.remove('hidden');
                 gameScreen.classList.add('hidden');
                 clearInterval(gameLoopId);
             }
         });
+
+        // Chargement du profil utilisateur et des paramètres
+        async function loadUserProfile() {
+            if (!userId) return;
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+            const docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                playerName = data.playerName || userEmail;
+                highScore = data.highScore || 0;
+                gameSpeed = data.gameSpeed || 100;
+                boardSize = data.boardSize || 20;
+            } else {
+                // Création du profil initial si non existant
+                playerName = userEmail;
+                highScore = 0;
+                gameSpeed = 100;
+                boardSize = 20;
+            }
+            highScoreDisplay.textContent = highScore;
+        }
 
         // Fonction de connexion/déconnexion
         loginButton.addEventListener('click', async () => {
@@ -268,7 +373,7 @@
                 showMessage('Succès', 'Connecté avec succès !');
             } catch (error) {
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    // Si l'utilisateur n'existe pas ou le mot de passe est incorrect, tente de créer un compte
+                    // Tenter de créer un compte si l'utilisateur n'est pas trouvé
                     try {
                         await createUserWithEmailAndPassword(auth, email, password);
                         showMessage('Succès', 'Compte créé et connecté !');
@@ -380,13 +485,18 @@
         }
 
         function resetGame() {
-            snake = [{ x: 10, y: 10 }];
+            // Mise à jour de la taille du canvas selon les paramètres
+            canvas.width = boardSize * cellSize;
+            canvas.height = boardSize * cellSize;
+
+            snake = [{ x: Math.floor(boardSize / 2), y: Math.floor(boardSize / 2) }];
             direction = 'Right';
             score = 0;
             scoreDisplay.textContent = score;
             isGameOver = false;
             generateFood();
-            gameLoopId = setInterval(update, 100);
+            clearInterval(gameLoopId); // S'assurer qu'il n'y a qu'une seule boucle en cours
+            gameLoopId = setInterval(update, gameSpeed);
         }
 
         function changeDirection(newDirection) {
@@ -410,31 +520,17 @@
         });
 
         // Firestore Leaderboard
-        async function fetchHighScore() {
-            if (!isAuthReady) return;
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists()) {
-                highScore = docSnap.data().highScore || 0;
-                highScoreDisplay.textContent = highScore;
-            } else {
-                highScore = 0;
-                highScoreDisplay.textContent = highScore;
-            }
-        }
-
         async function saveScore(newScore) {
-            if (!isAuthReady || userEmail === 'Anonyme') return; // Ne pas sauvegarder si l'utilisateur est anonyme
-            // Mise à jour du record personnel
+            if (!isAuthReady || !userId) return;
+            
             const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
             if (newScore > highScore) {
-                 await setDoc(userDocRef, { highScore: newScore, userId: userId, email: userEmail }, { merge: true });
+                 await setDoc(userDocRef, { highScore: newScore, playerName: playerName, email: userEmail, gameSpeed: gameSpeed, boardSize: boardSize }, { merge: true });
             }
 
-            // Ajout du score au classement public
             await setDoc(doc(db, `artifacts/${appId}/public/data/scores`, userId), {
                 score: newScore,
-                playerName: userEmail,
+                playerName: playerName,
                 timestamp: Date.now()
             });
         }
@@ -460,11 +556,8 @@
             });
         }
 
-        // Démarrage initial
         window.onload = function () {
-            canvas.width = boardSize * cellSize;
-            canvas.height = boardSize * cellSize;
-            // On attend le login pour lancer le jeu
+             // Aucun code ici, on attend l'authentification
         };
     </script>
 </body>
