@@ -1,146 +1,48 @@
-    body {
-        font-family: 'Inter', sans-serif;
-        background: linear-gradient(to bottom right, #1a202c, #2d3748); /* Fond dégradé plus riche */
-        color: #e2e8f0; /* Texte clair */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 1rem;
-        overflow-x: hidden; /* Empêche le défilement horizontal */
-    }
-    canvas {
-        border: 5px solid #4a5568; /* Bordure plus épaisse pour le plateau */
-        background-color: #262f3e; /* Couleur de fond du plateau légèrement plus foncée */
-        border-radius: 0.75rem; /* Coins plus arrondis */
-        box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.2), 0 6px 10px -3px rgba(0, 0, 0, 0.1);
-        max-width: 100%;
-        height: auto;
-        aspect-ratio: 1 / 1; /* S'assure que le canvas reste carré */
-    }
-    .btn {
-        @apply px-7 py-3 rounded-xl font-extrabold text-white transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 active:scale-95;
-        letter-spacing: 0.1em; /* Espacement des lettres pour un look pro */
-        background-image: linear-gradient(to right, var(--tw-gradient-stops));
-        background-size: 200% auto;
-        animation: gradient-shift 3s ease-in-out infinite alternate;
-        border-radius: 0.5rem;
-    }
-    .btn-green {
-        --tw-gradient-stops: #10b981, #059669; /* Verts pour le dégradé */
-        @apply hover:from-green-700 hover:to-green-600;
-        border-radius: 0.5rem;
-    }
-    .btn-blue {
-        --tw-gradient-stops: #3b82f6, #2563eb; /* Bleus pour le dégradé */
-        @apply hover:from-blue-700 hover:to-blue-600;
-         border-radius: 0.5rem;
-    }
-    .btn-red {
-        --tw-gradient-stops: #ef4444, #dc2626; /* Rouges pour le dégradé */
-        @apply hover:from-red-700 hover:to-red-600;
-         border-radius: 0.5rem;
-    }
-    .btn-orange {
-        --tw-gradient-stops: #f97316, #ea580c; /* Oranges pour le dégradé */
-        @apply hover:from-orange-700 hover:to-orange-600;
-         border-radius: 0.5rem;
-    }
-    .btn-purple {
-        --tw-gradient-stops: #9333ea, #a855f7; /* Violets pour le dégradé */
-        @apply hover:from-purple-700 hover:to-purple-600;
-         border-radius: 0.5rem;
-    }
-    @keyframes gradient-shift {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 100% 50%; }
-    }
-
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.85); /* Fond plus sombre pour les modales */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000; /* Z-index élevé pour être au-dessus de tout */
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.4s ease, visibility 0.4s ease;
-    }
-    .modal.active {
-        opacity: 1;
-        visibility: visible;
-    }
-    .modal-content {
-        background-color: #2d3748;
-        padding: 2.5rem; /* Plus de padding */
-        border-radius: 0.90rem; /* Coins plus arrondis */
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* Ombre plus prononcée */
-        text-align: center;
-        max-width: 90%;
-        width: 450px; /* Légèrement plus large */
-        border: 2px solid #4a5568; /* Bordure subtile */
-        z-index: 1001; /* Doit être plus élevé que le modal lui-même */
-    }
-    .leaderboard-table {
-        width: 100%;
-        border-collapse: separate; /* Pour les coins arrondis */
-        border-spacing: 0;
-        margin-top: 1rem;
-        border-radius: 0.5rem;
-        overflow: hidden; /* Cache les débordements des coins arrondis */
-    }
-    .leaderboard-table th, .leaderboard-table td {
-        padding: 0.9rem; /* Plus de padding */
-        text-align: left;
-        background-color: #3b4556; /* Fond plus clair pour les cellules */
-    }
-    .leaderboard-table th {
-        background-color: #4a5568;
-        font-weight: 700; /* Plus gras */
-        text-transform: uppercase;
-        font-size: 0.875rem;
-        color: #cbd5e0; /* Texte légèrement plus clair */
-    }
-    .leaderboard-table tbody tr:nth-child(odd) td {
-        background-color: #2d3748; /* Rayures pour la lisibilité */
-    }
-    .leaderboard-table tbody tr:hover td {
-        background-color: #4a5568; /* Effet hover */
-    }
-    .leaderboard-table th:first-child { border-top-left-radius: 0.5rem; }
-    .leaderboard-table th:last-child { border-top-right-radius: 0.5rem; }
-
-    /* Styles for touch controls */
-    #touch-controls {
-        display: grid;
-        grid-template-areas:
-            ". up ."
-            "left . right"
-            ". down .";
-        gap: 15px; /* Plus d'espace entre les boutons */
-        width: 250px; /* Ajustez la taille selon vos préférences */
-        margin-top: 30px; /* Plus d'espace au-dessus */
-    }
-    #touch-controls button {
-        @apply bg-gray-700 text-white p-5 rounded-xl font-bold shadow-xl transition-all duration-200 ease-in-out transform hover:scale-105 active:scale-95;
-        border-radius: 15px;
-        background-image: linear-gradient(to top, #4a5568, #2d3748);
-        border: 2px solid #6b7280;
-        border-radius: 14px;
-    }
-    #touch-controls button:active {
-        background-image: linear-gradient(to bottom, #4a5568, #2d3748);
-        border-radius: 14px;
-    }
-    #touch-up { grid-area: up; }
-    #touch-left { grid-area: left; }
-    #touch-right { grid-area: right; }
-    #touch-down { grid-area: down; }
-
-    
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(to bottom right, #1a202c, #2d3748);
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+    overflow-x: hidden;
+}
+canvas {
+    border: 5px solid #4a5568;
+    background-color: #262f3e;
+    border-radius: 0.75rem;
+}
+.btn {
+    font-weight: 600;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    margin: 0.25rem;
+    transition: background 0.2s;
+    outline: none;
+}
+.btn-blue { background: #2563eb; color: #fff; }
+.btn-green { background: #16a34a; color: #fff; }
+.btn-orange { background: #ea580c; color: #fff; }
+.btn-red { background: #dc2626; color: #fff; }
+.btn-purple { background: #7c3aed; color: #fff; }
+.btn:hover { filter: brightness(1.15); }
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: #1a202c;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 32px #000a;
+    min-width: 320px;
+    max-width: 90vw;
+    text-align: center;
+}
+.hidden { display: none !important; }
