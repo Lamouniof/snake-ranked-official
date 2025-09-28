@@ -3,562 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Online</title>
+    <title>Snake Classé 🐍</title>
+    <!-- Tailwind CSS pour un style moderne et responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
-            color: #e2e8f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
-        }
-        .container {
-            background-color: #2d3748;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            max-width: 900px;
-            width: 100%;
-        }
-        #game-board {
-            border: 2px solid #a0aec0;
-            border-radius: 0.5rem;
-            background-color: #4a5568;
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        @media (min-width: 768px) {
-            .container {
-                flex-direction: row;
-                gap: 2rem;
-            }
-        }
-        .snake-segment {
-            background-color: #48bb78;
-        }
-        .food {
-            background-color: #fc8181;
-            border-radius: 50%;
-        }
-        .game-over-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border-radius: 0.5rem;
-            text-align: center;
-        }
-        .button {
-            transition: all 0.2s ease-in-out;
-        }
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .hidden {
-            display: none;
-        }
-        .message-modal, .settings-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #3b4252;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            z-index: 100;
-        }
-        .message-backdrop, .settings-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 99;
-        }
-    </style>
-</head>
-<body class="bg-gray-900 flex flex-col items-center justify-center p-4 min-h-screen">
-
-    <!-- Écran d'authentification -->
-    <div id="auth-screen" class="container">
-        <h1 class="text-3xl font-bold text-center text-teal-300 mb-4">Bienvenue sur Snake Online</h1>
-        <p class="text-center text-gray-400 mb-6">Veuillez vous connecter pour jouer.</p>
-        <div class="bg-gray-700 p-6 rounded-lg flex flex-col gap-4">
-            <input id="email-input" type="email" placeholder="Entrez votre e-mail" class="w-full p-3 rounded-md bg-gray-800 text-white placeholder-gray-500 border border-transparent focus:border-blue-500">
-            <input id="password-input" type="password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-800 text-white placeholder-gray-500 border border-transparent focus:border-blue-500">
-            <button id="login-button" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg mt-2 button">Se connecter</button>
-        </div>
-    </div>
-
-    <!-- Écran de jeu et Leaderboard (initialement cachés) -->
-    <div id="game-screen" class="container md:flex-row hidden">
-        <!-- Section Jeu et Contrôles -->
-        <div class="flex-1 flex flex-col gap-4">
-            <h1 class="text-3xl font-bold text-center text-teal-300">Jeu Snake</h1>
-            <div id="game-container" class="relative w-full aspect-square">
-                <canvas id="game-board" class="w-full h-full rounded-lg"></canvas>
-            </div>
-            <div class="flex items-center justify-between p-2 rounded-lg bg-gray-700">
-                <div class="flex flex-col items-center">
-                    <span class="text-xs font-semibold text-gray-400">Score</span>
-                    <span id="score-display" class="text-2xl font-bold text-yellow-300">0</span>
-                </div>
-                <div class="flex flex-col items-center">
-                    <span class="text-xs font-semibold text-gray-400">Record</span>
-                    <span id="high-score-display" class="text-2xl font-bold text-purple-300">0</span>
-                </div>
-            </div>
-            <div id="auth-ui" class="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
-                <span id="user-status" class="text-sm text-gray-300"></span>
-                <div class="flex gap-2">
-                    <button id="settings-button" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg button">Paramètres</button>
-                    <button id="logout-button" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg button">Déconnexion</button>
-                </div>
-            </div>
-            <div id="controls-ui" class="flex justify-around mt-4 md:hidden">
-                <button onclick="changeDirection('Up')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▲</button>
-                <div class="flex flex-col items-center">
-                    <button onclick="changeDirection('Left')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">◀</button>
-                    <button onclick="changeDirection('Down')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white mt-2 button">▼</button>
-                </div>
-                <button onclick="changeDirection('Right')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white button">▶</button>
-            </div>
-        </div>
-
-        <!-- Section Leaderboard -->
-        <div class="flex-1 bg-gray-700 p-4 rounded-lg flex flex-col gap-4">
-            <h2 class="text-2xl font-bold text-center text-yellow-300">Classement</h2>
-            <div id="leaderboard-container" class="flex-grow overflow-y-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="text-sm text-gray-400 uppercase tracking-wider border-b border-gray-600">
-                            <th class="py-2">Rank</th>
-                            <th class="py-2">Joueur</th>
-                            <th class="py-2 text-right">Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-list">
-                        <!-- Les scores seront insérés ici par le JS -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
-    <!-- Modale de message (cachée par défaut) -->
-    <div id="message-modal-backdrop" class="message-backdrop hidden"></div>
-    <div id="message-modal" class="message-modal hidden">
-        <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
-        <p id="modal-message" class="mb-4"></p>
-        <button id="modal-close-button" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg button">OK</button>
-    </div>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900 text-gray-100">
 
-    <!-- Modale des paramètres (cachée par défaut) -->
-    <div id="settings-modal-backdrop" class="settings-backdrop hidden"></div>
-    <div id="settings-modal" class="settings-modal hidden">
-        <h3 class="text-xl font-bold mb-4">Paramètres de jeu</h3>
-        <div class="flex flex-col gap-4">
-            <div>
-                <label for="player-name-input" class="text-sm font-semibold text-gray-300">Nom du joueur</label>
-                <input id="player-name-input" type="text" class="w-full p-2 rounded-md bg-gray-800 text-white placeholder-gray-500 mt-1">
+    <!-- Modal pour la sélection de l'appareil (visible au démarrage) -->
+    <div id="device-selection-modal" class="modal active hidden">
+        <div class="modal-content">
+            <h3 class="text-3xl font-bold mb-4 text-purple-300">Quel appareil utilisez-vous ?</h3>
+            <p class="text-lg mb-6 text-gray-300">Cela nous aidera à adapter l'expérience de jeu.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="select-desktop-btn" class="btn btn-blue">Ordinateur (Clavier)</button>
+                <button id="select-mobile-btn" class="btn btn-green">Téléphone (Tactile)</button>
             </div>
-            <div>
-                <label for="difficulty-select" class="text-sm font-semibold text-gray-300">Difficulté</label>
-                <select id="difficulty-select" class="w-full p-2 rounded-md bg-gray-800 text-white mt-1">
-                    <option value="150">Facile</option>
-                    <option value="100" selected>Normal</option>
-                    <option value="50">Difficile</option>
-                </select>
-            </div>
-            <div>
-                <label for="grid-size-select" class="text-sm font-semibold text-gray-300">Taille de la grille</label>
-                <select id="grid-size-select" class="w-full p-2 rounded-md bg-gray-800 text-white mt-1">
-                    <option value="15">Petite</option>
-                    <option value="20" selected>Moyenne</option>
-                    <option value="25">Grande</option>
-                </select>
-            </div>
-            <button id="save-settings-button" class="w-full bg-blue-500 text-white font-bold py-2 rounded-lg mt-2 button">Sauvegarder</button>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        setLogLevel('debug');
+    <!-- Section d'Authentification (initialement visible après sélection appareil, cachée après connexion) -->
+    <div id="auth-section" class="container mx-auto p-6 bg-gray-800 rounded-xl shadow-2xl mb-8 max-w-md hidden">
+        <h2 class="text-3xl font-bold text-center mb-6 text-blue-300">Connexion / Inscription</h2>
+        <form id="login-form" class="mb-4">
+            <input type="text" id="login-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="btn btn-blue w-full mb-2">Se connecter</button>
+            <p class="text-center text-gray-400">Pas encore de compte ? <a href="#" id="show-register" class="text-blue-400 hover:underline">S'inscrire</a></p>
+        </form>
 
-        // Initialisation de Firebase
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        <form id="register-form" class="hidden">
+            <input type="text" id="register-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input type="password" id="register-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button type="submit" class="btn btn-green w-full mb-2">S'inscrire</button>
+            <p class="text-center text-gray-400">Déjà un compte ? <a href="#" id="show-login" class="text-blue-400 hover:underline">Se connecter</a></p>
+        </form>
+    </div>
 
-        // Variables globales
-        let userId = null;
-        let isAuthReady = false;
-        let userEmail = 'Anonyme';
-        let playerName = 'Anonyme';
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const scoresCollectionRef = collection(db, `artifacts/${appId}/public/data/scores`);
+    <!-- Contenu Principal du Jeu (caché jusqu'à l'authentification) -->
+    <div id="main-game-content" class="container mx-auto p-6 bg-gray-800 rounded-xl shadow-2xl mb-8 max-w-4xl hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-green-400">
+                <span class="text-6xl">🐍</span> Snake Classé <span class="text-6xl">🏆</span>
+            </h1>
+            <button id="logout-btn" class="btn btn-red">Déconnexion</button>
+        </div>
 
-        // État du jeu et paramètres
-        let boardSize = 20;
-        let gameSpeed = 100;
-        let cellSize = 20;
-        let snake = [{ x: 10, y: 10 }];
-        let food = {};
-        let direction = 'Right';
-        let score = 0;
-        let highScore = 0;
-        let gameLoopId = null;
-        let isGameOver = false;
-        
-        // Éléments du DOM
-        const canvas = document.getElementById('game-board');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score-display');
-        const highScoreDisplay = document.getElementById('high-score-display');
-        const gameContainer = document.getElementById('game-container');
-        const authScreen = document.getElementById('auth-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const userStatus = document.getElementById('user-status');
-        const emailInput = document.getElementById('email-input');
-        const passwordInput = document.getElementById('password-input');
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const settingsButton = document.getElementById('settings-button');
-        const modalBackdrop = document.getElementById('message-modal-backdrop');
-        const modal = document.getElementById('message-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalCloseButton = document.getElementById('modal-close-button');
-        const settingsModalBackdrop = document.getElementById('settings-modal-backdrop');
-        const settingsModal = document.getElementById('settings-modal');
-        const playerNameInput = document.getElementById('player-name-input');
-        const difficultySelect = document.getElementById('difficulty-select');
-        const gridSizeSelect = document.getElementById('grid-size-select');
-        const saveSettingsButton = document.getElementById('save-settings-button');
+        <div id="player-info" class="text-center mb-6 bg-gray-700 p-5 rounded-lg shadow-md border border-gray-600">
+            <h2 class="text-2xl font-bold mb-3 text-blue-300">Vos informations :</h2>
+            <p class="text-xl mb-1">Nom d'utilisateur: <span id="username-display" class="font-semibold text-blue-300">Chargement...</span></p>
+            <p class="text-xl mb-1">Points de Rang: <span id="rank-points-display" class="font-semibold text-yellow-300">0</span></p>
+            <p class="text-xl">Rang: <span id="rank-name-display" class="font-semibold text-purple-300">Bronze V</span></p>
+            <div class="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
+                <input type="text" id="username-input" placeholder="Nouveau nom d'utilisateur" class="p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 w-full sm:w-auto flex-grow">
+                <button id="set-username-btn" class="btn btn-blue w-full sm:w-auto">Définir le nom</button>
+            </div>
+        </div>
 
-        // Fonctions pour gérer les modales
-        function showMessage(title, message) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modalBackdrop.classList.remove('hidden');
-            modal.classList.remove('hidden');
-        }
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <!-- Section du Jeu -->
+            <div class="bg-gray-700 p-6 rounded-xl shadow-lg flex flex-col items-center border border-gray-600">
+                <h2 class="text-3xl font-bold mb-4 text-center text-green-300">Le Jeu</h2>
+                <canvas id="gameCanvas" width="400" height="400" class="mb-6"></canvas>
+                <div class="flex flex-col sm:flex-row flex-wrap gap-4 w-full justify-center">
+                    
+                    <button id="start-solo-btn" class="btn btn-green w-full sm:w-auto">Mode Solo</button>
+                    <button id="join-ranked-btn" class="btn btn-orange w-full sm:w-auto">Rejoindre partie classée</button>
+                    <button id="join-br-btn" class="btn btn-purple w-full sm:w-auto">Mode Battle Royale</button>
+                    <button id="cancel-ranked-btn" class="btn btn-red w-full sm:w-auto hidden">Annuler recherche classée</button>
+                    <button id="cancel-br-btn" class="btn btn-red w-full sm:w-auto hidden">Annuler recherche BR</button>
+                </div>
+                <div id="game-message" class="mt-5 text-center text-lg font-semibold text-blue-300 animate-pulse"></div>
+                <div id="br-lobby-info" class="mt-4 text-center text-lg font-semibold text-yellow-300 hidden">
+                    <p>Joueurs dans le lobby BR: <span id="br-players-in-lobby">0</span> / <span id="br-max-players">10</span></p>
+                    <p>Début du jeu dans: <span id="br-countdown">--</span> secondes</p>
+                </div>
+                <div id="opponent-info" class="mt-4 text-center text-lg font-semibold text-yellow-300 hidden">
+                    Adversaire: <span id="opponent-username" class="font-bold text-orange-400"></span>
+                </div>
 
-        function showSettings() {
-            settingsModalBackdrop.classList.remove('hidden');
-            settingsModal.classList.remove('hidden');
-            // Mettre à jour les champs de la modale avec les valeurs actuelles
-            playerNameInput.value = playerName;
-            difficultySelect.value = gameSpeed;
-            gridSizeSelect.value = boardSize;
-        }
+                <!-- Touch controls (hidden by default) -->
+                <div id="touch-controls" class="hidden">
+                    <button id="touch-up">▲</button>
+                    <button id="touch-left">◀</button>
+                    <button id="touch-right">▶</button>
+                    <button id="touch-down">▼</button>
+                </div>
+            </div>
 
-        function hideSettings() {
-            settingsModalBackdrop.classList.add('hidden');
-            settingsModal.classList.add('hidden');
-        }
+            <!-- Section des Classements -->
+            <div class="bg-gray-700 p-6 rounded-xl shadow-lg flex flex-col">
+                <h2 class="text-3xl font-bold mb-4 text-center text-blue-300">Classements</h2>
+                <p class="text-lg font-bold mb-4 text-center">Joueurs en ligne: <span id="online-players-count" class="text-green-400">0</span></p>
+                <button id="refresh-leaderboard-btn" class="btn btn-blue mb-4">Actualiser les classements</button>
 
-        modalCloseButton.addEventListener('click', () => {
-            modalBackdrop.classList.add('hidden');
-            modal.classList.add('hidden');
-        });
+                <h3 class="text-2xl font-bold mt-6 mb-3 text-blue-300">Classement Classé</h3>
+                <div class="overflow-x-auto rounded-lg mb-8">
+                    <table id="ranked-leaderboard-table" class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rang</th>
+                                <th>Nom d'utilisateur</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Le classement classé sera inséré ici par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
 
-        settingsButton.addEventListener('click', showSettings);
-        settingsModalBackdrop.addEventListener('click', hideSettings);
-        saveSettingsButton.addEventListener('click', async () => {
-            const newPlayerName = playerNameInput.value || userEmail;
-            const newGameSpeed = parseInt(difficultySelect.value);
-            const newBoardSize = parseInt(gridSizeSelect.value);
+                <h3 class="text-2xl font-bold mt-6 mb-3 text-green-300">Meilleurs Scores Solo</h3>
+                <div class="overflow-x-auto rounded-lg">
+                    <table id="solo-leaderboard-table" class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rang</th>
+                                <th>Nom d'utilisateur</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Le classement solo sera inséré ici par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Mise à jour de l'état local
-            playerName = newPlayerName;
-            gameSpeed = newGameSpeed;
-            boardSize = newBoardSize;
-
-            // Sauvegarde des paramètres dans Firestore
-            if (userId) {
-                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-                await setDoc(userDocRef, {
-                    playerName: newPlayerName,
-                    gameSpeed: newGameSpeed,
-                    boardSize: newBoardSize,
-                    highScore: highScore
-                }, { merge: true });
-            }
-
-            showMessage('Succès', 'Paramètres sauvegardés ! Le jeu va redémarrer.');
-            hideSettings();
-            resetGame();
-        });
-
-        // Authentification Firebase
-        onAuthStateChanged(auth, async (user) => {
-            isAuthReady = true;
-            if (user) {
-                userId = user.uid;
-                userEmail = user.email || 'Anonyme';
-                userStatus.textContent = `Connecté comme : ${userEmail}`;
-                authScreen.classList.add('hidden');
-                gameScreen.classList.remove('hidden');
-                await loadUserProfile();
-                resetGame();
-                attachLeaderboardListener();
-            } else {
-                userId = null;
-                userEmail = 'Anonyme';
-                userStatus.textContent = 'Déconnecté.';
-                authScreen.classList.remove('hidden');
-                gameScreen.classList.add('hidden');
-                clearInterval(gameLoopId);
-            }
-        });
-
-        // Chargement du profil utilisateur et des paramètres
-        async function loadUserProfile() {
-            if (!userId) return;
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                playerName = data.playerName || userEmail;
-                highScore = data.highScore || 0;
-                gameSpeed = data.gameSpeed || 100;
-                boardSize = data.boardSize || 20;
-            } else {
-                // Création du profil initial si non existant
-                playerName = userEmail;
-                highScore = 0;
-                gameSpeed = 100;
-                boardSize = 20;
-            }
-            highScoreDisplay.textContent = highScore;
-        }
-
-        // Fonction de connexion/déconnexion
-        loginButton.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            if (!email || !password) {
-                showMessage('Erreur', 'Veuillez entrer un e-mail et un mot de passe valides.');
-                return;
-            }
-            loginButton.textContent = 'Connexion en cours...';
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                showMessage('Succès', 'Connecté avec succès !');
-            } catch (error) {
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    // Tenter de créer un compte si l'utilisateur n'est pas trouvé
-                    try {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                        showMessage('Succès', 'Compte créé et connecté !');
-                    } catch (createError) {
-                        showMessage('Erreur', 'Impossible de créer un compte. ' + createError.message);
-                    }
-                } else {
-                    showMessage('Erreur', 'Erreur de connexion. ' + error.message);
-                }
-            } finally {
-                loginButton.textContent = 'Se connecter';
-            }
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                showMessage('Déconnexion', 'Vous avez été déconnecté.');
-            } catch (error) {
-                showMessage('Erreur', 'Erreur de déconnexion. ' + error.message);
-            }
-        });
-
-        // Fonctions du jeu
-        function generateFood() {
-            food = {
-                x: Math.floor(Math.random() * boardSize),
-                y: Math.floor(Math.random() * boardSize)
-            };
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#4a5568';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            snake.forEach(segment => {
-                ctx.fillStyle = '#48bb78';
-                ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
-                ctx.strokeStyle = '#2f855a';
-                ctx.strokeRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
-            });
-
-            ctx.fillStyle = '#fc8181';
-            ctx.beginPath();
-            ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        function update() {
-            if (isGameOver) return;
-
-            const head = { x: snake[0].x, y: snake[0].y };
-            switch (direction) {
-                case 'Up':
-                    head.y--;
-                    break;
-                case 'Down':
-                    head.y++;
-                    break;
-                case 'Left':
-                    head.x--;
-                    break;
-                case 'Right':
-                    head.x++;
-                    break;
-            }
-
-            if (checkCollision(head)) {
-                gameOver();
-                return;
-            }
-
-            snake.unshift(head);
-
-            if (head.x === food.x && head.y === food.y) {
-                score++;
-                scoreDisplay.textContent = score;
-                generateFood();
-            } else {
-                snake.pop();
-            }
-
-            draw();
-        }
-
-        function checkCollision(head) {
-            return head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || snake.some(segment => segment.x === head.x && segment.y === head.y);
-        }
-
-        function gameOver() {
-            isGameOver = true;
-            clearInterval(gameLoopId);
-            const overlay = document.createElement('div');
-            overlay.className = 'game-over-overlay';
-            overlay.innerHTML = `
-                <h3 class="text-4xl font-bold text-red-500 mb-4">Game Over!</h3>
-                <p class="text-lg text-white mb-2">Votre score: ${score}</p>
-                <button id="restart-button" class="bg-teal-500 text-white font-bold py-2 px-6 rounded-lg button">Rejouer</button>
-            `;
-            gameContainer.appendChild(overlay);
-
-            document.getElementById('restart-button').addEventListener('click', () => {
-                gameContainer.removeChild(overlay);
-                resetGame();
-            });
-
-            saveScore(score);
-        }
-
-        function resetGame() {
-            // Mise à jour de la taille du canvas selon les paramètres
-            canvas.width = boardSize * cellSize;
-            canvas.height = boardSize * cellSize;
-
-            snake = [{ x: Math.floor(boardSize / 2), y: Math.floor(boardSize / 2) }];
-            direction = 'Right';
-            score = 0;
-            scoreDisplay.textContent = score;
-            isGameOver = false;
-            generateFood();
-            clearInterval(gameLoopId); // S'assurer qu'il n'y a qu'une seule boucle en cours
-            gameLoopId = setInterval(update, gameSpeed);
-        }
-
-        function changeDirection(newDirection) {
-            const oppositeDirections = { 'Up': 'Down', 'Down': 'Up', 'Left': 'Right', 'Right': 'Left' };
-            if (oppositeDirections[newDirection] !== direction) {
-                direction = newDirection;
-            }
-        }
-
-        document.addEventListener('keydown', e => {
-            const key = e.key;
-            const newDirection = {
-                'ArrowUp': 'Up',
-                'ArrowDown': 'Down',
-                'ArrowLeft': 'Left',
-                'ArrowRight': 'Right'
-            }[key];
-            if (newDirection) {
-                changeDirection(newDirection);
-            }
-        });
-
-        // Firestore Leaderboard
-        async function saveScore(newScore) {
-            if (!isAuthReady || !userId) return;
-            
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            if (newScore > highScore) {
-                 await setDoc(userDocRef, { highScore: newScore, playerName: playerName, email: userEmail, gameSpeed: gameSpeed, boardSize: boardSize }, { merge: true });
-            }
-
-            await setDoc(doc(db, `artifacts/${appId}/public/data/scores`, userId), {
-                score: newScore,
-                playerName: playerName,
-                timestamp: Date.now()
-            });
-        }
-
-        function attachLeaderboardListener() {
-            if (!isAuthReady) return;
-            const q = query(scoresCollectionRef, orderBy('score', 'desc'), limit(10));
-            onSnapshot(q, (querySnapshot) => {
-                const leaderboardList = document.getElementById('leaderboard-list');
-                leaderboardList.innerHTML = '';
-                let rank = 1;
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const row = document.createElement('tr');
-                    row.className = 'text-gray-200 hover:bg-gray-600 transition-colors duration-200';
-                    row.innerHTML = `
-                        <td class="py-2">${rank++}</td>
-                        <td class="py-2">${data.playerName}</td>
-                        <td class="py-2 text-right font-semibold">${data.score}</td>
-                    `;
-                    leaderboardList.appendChild(row);
-                });
-            });
-        }
-
-        window.onload = function () {
-             // Aucun code ici, on attend l'authentification
-        };
-    </script>
+    <!-- Modal pour les messages d'alerte et de jeu -->
+    <div id="message-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4 text-red-400"></h3>
+            <p id="modal-message" class="text-lg mb-6"></p>
+            <button id="modal-close-btn" class="btn btn-green">OK</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}" type="module"></script>
 </body>
 </html>
