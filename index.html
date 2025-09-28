@@ -4,19 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Classé 🐍</title>
-    <!-- Tailwind CSS pour un style moderne et responsive -->
+    <!-- Tailwind CSS moderne -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Socket.IO client library -->
+    <!-- Socket.IO client -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-900 text-gray-100">
-
-    <!-- Modal pour la sélection de l'appareil (visible au démarrage) -->
-    <div id="device-selection-modal" class="modal active hidden">
+    <!-- Modal de sélection appareil -->
+    <div id="device-selection-modal" class="modal active">
         <div class="modal-content">
             <h3 class="text-3xl font-bold mb-4 text-purple-300">Quel appareil utilisez-vous ?</h3>
             <p class="text-lg mb-6 text-gray-300">Cela nous aidera à adapter l'expérience de jeu.</p>
@@ -27,25 +25,24 @@
         </div>
     </div>
 
-    <!-- Section d'Authentification (initialement visible après sélection appareil, cachée après connexion) -->
+    <!-- Section Authentification -->
     <div id="auth-section" class="container mx-auto p-6 bg-gray-800 rounded-xl shadow-2xl mb-8 max-w-md hidden">
         <h2 class="text-3xl font-bold text-center mb-6 text-blue-300">Connexion / Inscription</h2>
         <form id="login-form" class="mb-4">
-            <input type="text" id="login-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="text" id="login-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
             <button type="submit" class="btn btn-blue w-full mb-2">Se connecter</button>
             <p class="text-center text-gray-400">Pas encore de compte ? <a href="#" id="show-register" class="text-blue-400 hover:underline">S'inscrire</a></p>
         </form>
-
         <form id="register-form" class="hidden">
-            <input type="text" id="register-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <input type="password" id="register-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input type="text" id="register-username" placeholder="Nom d'utilisateur" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-3 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+            <input type="password" id="register-password" placeholder="Mot de passe" class="w-full p-3 rounded-md bg-gray-600 text-gray-100 placeholder-gray-400 mb-4 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500" required>
             <button type="submit" class="btn btn-green w-full mb-2">S'inscrire</button>
             <p class="text-center text-gray-400">Déjà un compte ? <a href="#" id="show-login" class="text-blue-400 hover:underline">Se connecter</a></p>
         </form>
     </div>
 
-    <!-- Contenu Principal du Jeu (caché jusqu'à l'authentification) -->
+    <!-- Section principale du jeu -->
     <div id="main-game-content" class="container mx-auto p-6 bg-gray-800 rounded-xl shadow-2xl mb-8 max-w-4xl hidden">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-4xl md:text-5xl font-extrabold text-green-400">
@@ -53,7 +50,6 @@
             </h1>
             <button id="logout-btn" class="btn btn-red">Déconnexion</button>
         </div>
-
         <div id="player-info" class="text-center mb-6 bg-gray-700 p-5 rounded-lg shadow-md border border-gray-600">
             <h2 class="text-2xl font-bold mb-3 text-blue-300">Vos informations :</h2>
             <p class="text-xl mb-1">Nom d'utilisateur: <span id="username-display" class="font-semibold text-blue-300">Chargement...</span></p>
@@ -64,14 +60,11 @@
                 <button id="set-username-btn" class="btn btn-blue w-full sm:w-auto">Définir le nom</button>
             </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <!-- Section du Jeu -->
             <div class="bg-gray-700 p-6 rounded-xl shadow-lg flex flex-col items-center border border-gray-600">
                 <h2 class="text-3xl font-bold mb-4 text-center text-green-300">Le Jeu</h2>
                 <canvas id="gameCanvas" width="400" height="400" class="mb-6"></canvas>
                 <div class="flex flex-col sm:flex-row flex-wrap gap-4 w-full justify-center">
-                    
                     <button id="start-solo-btn" class="btn btn-green w-full sm:w-auto">Mode Solo</button>
                     <button id="join-ranked-btn" class="btn btn-orange w-full sm:w-auto">Rejoindre partie classée</button>
                     <button id="join-br-btn" class="btn btn-purple w-full sm:w-auto">Mode Battle Royale</button>
@@ -86,8 +79,7 @@
                 <div id="opponent-info" class="mt-4 text-center text-lg font-semibold text-yellow-300 hidden">
                     Adversaire: <span id="opponent-username" class="font-bold text-orange-400"></span>
                 </div>
-
-                <!-- Touch controls (hidden by default) -->
+                <!-- Contrôles tactiles -->
                 <div id="touch-controls" class="hidden">
                     <button id="touch-up">▲</button>
                     <button id="touch-left">◀</button>
@@ -95,56 +87,21 @@
                     <button id="touch-down">▼</button>
                 </div>
             </div>
-
-            <!-- Section des Classements -->
-            <div class="bg-gray-700 p-6 rounded-xl shadow-lg flex flex-col">
-                <h2 class="text-3xl font-bold mb-4 text-center text-blue-300">Classements</h2>
-                <p class="text-lg font-bold mb-4 text-center">Joueurs en ligne: <span id="online-players-count" class="text-green-400">0</span></p>
-                <button id="refresh-leaderboard-btn" class="btn btn-blue mb-4">Actualiser les classements</button>
-
-                <h3 class="text-2xl font-bold mt-6 mb-3 text-blue-300">Classement Classé</h3>
-                <div class="overflow-x-auto rounded-lg mb-8">
-                    <table id="ranked-leaderboard-table" class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>Rang</th>
-                                <th>Nom d'utilisateur</th>
-                                <th>Points</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Le classement classé sera inséré ici par JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 class="text-2xl font-bold mt-6 mb-3 text-green-300">Meilleurs Scores Solo</h3>
-                <div class="overflow-x-auto rounded-lg">
-                    <table id="solo-leaderboard-table" class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>Rang</th>
-                                <th>Nom d'utilisateur</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Le classement solo sera inséré ici par JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Autres sections : leaderboard, etc. -->
+            <div id="leaderboard-section" class="bg-gray-700 p-6 rounded-xl shadow-lg flex flex-col items-center border border-gray-600">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-300">Classement</h2>
+                <ul id="leaderboard-list" class="w-full"></ul>
             </div>
         </div>
     </div>
-
-    <!-- Modal pour les messages d'alerte et de jeu -->
-    <div id="message-modal" class="modal">
+    <!-- Modal générique -->
+    <div id="modal" class="modal hidden">
         <div class="modal-content">
-            <h3 id="modal-title" class="text-2xl font-bold mb-4 text-red-400"></h3>
-            <p id="modal-message" class="text-lg mb-6"></p>
-            <button id="modal-close-btn" class="btn btn-green">OK</button>
+            <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
+            <div id="modal-message"></div>
+            <button id="modal-close-btn" class="btn btn-blue mt-6">Fermer</button>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}" type="module"></script>
+    <script src="static/script.js"></script>
 </body>
 </html>
